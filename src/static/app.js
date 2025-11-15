@@ -27,7 +27,12 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="participants-section">
               <strong>Participants:</strong>
               <ul class="participants-list">
-                ${details.participants.map(p => `<li>${p}</li>`).join("")}
+                ${details.participants.map(p => `
+                  <li class="participant-item">
+                    <span class="participant-name">${p}</span>
+                    <span class="delete-participant" title="Remover" data-activity="${name}" data-participant="${p}">&#128465;</span>
+                  </li>
+                `).join("")}
               </ul>
             </div>
           `;
@@ -49,6 +54,32 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
 
         activitiesList.appendChild(activityCard);
+        // Adiciona evento de remoção para cada ícone de deletar
+        activityCard.addEventListener("click", async (e) => {
+          if (e.target.classList.contains("delete-participant")) {
+            const participant = e.target.getAttribute("data-participant");
+            const activity = e.target.getAttribute("data-activity");
+            try {
+              const response = await fetch(`/activities/${encodeURIComponent(activity)}/unregister?email=${encodeURIComponent(participant)}`, {
+                method: "POST"
+              });
+              const result = await response.json();
+              if (response.ok) {
+                fetchActivities();
+              } else {
+                messageDiv.textContent = result.detail || "Erro ao remover participante.";
+                messageDiv.className = "error";
+                messageDiv.classList.remove("hidden");
+                setTimeout(() => { messageDiv.classList.add("hidden"); }, 5000);
+              }
+            } catch (error) {
+              messageDiv.textContent = "Falha ao remover participante.";
+              messageDiv.className = "error";
+              messageDiv.classList.remove("hidden");
+              setTimeout(() => { messageDiv.classList.add("hidden"); }, 5000);
+            }
+          }
+        });
 
         // Add option to select dropdown
         const option = document.createElement("option");
@@ -83,6 +114,8 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        // Atualiza a lista de atividades para refletir o novo participante
+        fetchActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
